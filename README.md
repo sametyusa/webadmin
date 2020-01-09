@@ -1,4 +1,3 @@
 # Hunt-WebService
-Web service Administrator
-
-IIS sunuculardan web servis listesini toplar ve erişim testlerini yapar.
+Web Service Browser
+Gathers web services and other types of files from IIS web services and checks for access from specified networks

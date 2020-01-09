@@ -1,6 +1,32 @@
 <?php
-//Admin paneline veri gönderir
+/*
+Web Service Browser 
+You need to edit db credentials and network zone names before installation.
+Compatible with javascript datatables library.
 
+MIT License
+
+Copyright (c) 2020 Samet Atalar
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
 error_reporting(E_ERROR);
 session_start();
 global $allowedIP;
@@ -8,11 +34,9 @@ global $dbUser;
 global $dbPass;
 global $dbName;
 $dbUser = "YOUR_DB_USER";
-$dbPass = 'YOUR_DB_PASS';
+$dbPass = 'YOUR_DB_PASSWORD';
 $dbName = "YOUR_DB_NAME";
-//$allowedIP = array("10.0.2.12","10.0.30.220","127.0.0.1","172.20.34.44","10.0.41.47","10.0.113.147","10.0.41.48","172.19.71.39","172.20.34.60");
-//if (in_array($_SERVER['REMOTE_ADDR'],$allowedIP)) {
-    $connection = new mysqli("localhost",$dbUser,$dbPass,$dbName);
+$connection = new mysqli("localhost",$dbUser,$dbPass,$dbName);
 function getWSList($getWhat) {
     /*
     Sadece sayım yapar
@@ -21,10 +45,16 @@ function getWSList($getWhat) {
     global $dbPass;
     global $dbName;
     global $connection;
-    if ($getWhat=="all" || !isset($getWhat)) $result = $connection->query("select count(*) AS toplam from webservices") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="internet")  $result = $connection->query("select  count(*) AS toplam from webservices where internetaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="intertechclient")  $result = $connection->query("select  count(*) AS toplam from webservices where clientaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="denizprdoaccess")  $result = $connection->query("select  count(*) AS toplam from webservices where serveraccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
+    $filetype = strip_tags($_GET["filetype"]); //optional parameter
+    $filequery="";
+    if ($getWhat=="all" || !isset($getWhat))  {
+        if (strlen($filetype)>1) $result = $connection->query("select count(*) AS toplam from webservices") or die(json_encode(array("err"=>mysqli_error($connection))));
+        else $result = $connection->query("select count(*) AS toplam from webservices") or die(json_encode(array("err"=>mysqli_error($connection))));
+    }
+    elseif ($getWhat=="internet")  $result = $connection->query("select  count(*) AS toplam from webservices where internetaccess=1 ") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="YOUR_NETWORK_ZONE_NAME_1")  $result = $connection->query("select  count(*) AS toplam from webservices where YOUR_NETWORK_ZONE_NAME_1=1 ") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="YOUR_NETWORK_ZONE_NAME_2")  $result = $connection->query("select  count(*) AS toplam from webservices where YOUR_NETWORK_ZONE_NAME_2=1 ") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="YOUR_NETWORK_ZONE_NAME_3")  $result = $connection->query("select  count(*) AS toplam from webservices where YOUR_NETWORK_ZONE_NAME_3=1 ") or die(json_encode(array("err"=>mysqli_error($connection))));
     $row = $result->fetch_array();
     return $row[0];
 }
@@ -38,9 +68,10 @@ function getWSListAsCSV($getWhat) {
     global $dbName;
     global $connection;
     if ($getWhat=="all") $result = $connection->query("select * from webservices") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="internet")  $result = $connection->query("select * from webservices where internetaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="client")  $result = $connection->query("select  * from webservices where clientaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="server")  $result = $connection->query("select * toplam from webservices where serveraccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="internet")  $result = $connection->query("select * from webservices where YOUR_NETWORK_ZONE_NAME_1=1") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="YOUR_NETWORK_ZONE_NAME_1")  $result = $connection->query("select  * from webservices where YOUR_NETWORK_ZONE_NAME_1=1") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="YOUR_NETWORK_ZONE_NAME_2")  $result = $connection->query("select * toplam from webservices where YOUR_NETWORK_ZONE_NAME_2=1") or die(json_encode(array("err"=>mysqli_error($connection))));
+    elseif ($getWhat=="YOUR_NETWORK_ZONE_NAME_3")  $result = $connection->query("select  count(*) AS toplam from webservices where YOUR_NETWORK_ZONE_NAME_3=1") or die(json_encode(array("err"=>mysqli_error($connection))));
     while ($row = $result->fetch_row()) {
         $wsList[$i] = $row;
         $i++;
@@ -49,45 +80,73 @@ function getWSListAsCSV($getWhat) {
 }
 function getWSListAsJson($getWhat,$startlimit,$stoplimit) {
     /*
+    Json formatında veritabanındaki kayıtları iletir
     Datatables jquery kütüphanesiyle entegre çalışır
     */
     global $dbUser;
     global $dbPass;
     global $dbName;
     global $connection;
-    if ($getWhat=="all" || !isset($getWhat)) {
-        $countRows = $connection->query("select * from webservices") or die(json_encode(array("err"=>mysqli_error($connection))));
-        $countFiltered = $countRows->num_rows;
-        $search = htmlentities($_GET["search"]["value"]);
+    $wsquery="";
+    $wsqueryCount="";
+    $search = strip_tags($_GET["search"]["value"]); //optional parameter
+    $filetype = strip_tags($_GET["filetype"]); //optional parameter
+    $order = $_GET["order"]; //optional parameter
+    $filequery="";
+    $orderext=""; //UI'dan sıralama istendi mi?
+    if ($filetype=="asmx" || $filetype=="svc") { $filequery="(file LIKE '%.asmx' OR file LIKE '%.svc')";}
+    if(count($order)>0) {
+        //DB'den index numarasıyla çekmek istemiyoruz.
+        //Eğer ekranda gösterilen sütunlarda değişiklik olursa buradaki dizide de değişiklik olmalı
+        $colList=["fullurl","hostname","IP","folder","Appname","YOUR_NETWORK_ZONE_NAME_1","YOUR_NETWORK_ZONE_NAME_2","YOUR_NETWORK_ZONE_NAME_3","domain","YOUR_NETWORK_ZONE_NAME_4"];
+        $colname=strip_tags($colList[$order[0][column]]);
+        $orderdir=strip_tags($order[0][dir]);
+        $orderext=" ORDER BY $colname $orderdir";
+    }
+    if ($getWhat=="all" || strlen($getWhat)<1) {
         if (strlen($search)>1){
-            $result = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,intertechaccess,denizprodaccess,internetaccess,domain) LIKE '%$search%' limit $startlimit,$stoplimit") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countResult = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,intertechaccess,denizprodaccess,internetaccess,domain) LIKE '%$search%'") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countFiltered = $countResult->num_rows;
+            //Arama yapılıyor... 
+            if ($filetype=="asmx" || $filetype=="svc") {
+                //Buradaki sorguda sadece file sütunun sonuna bakılıyor
+                $wsquery="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain,YOUR_NETWORK_ZONE_NAME_4 from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain) LIKE '%$search%' AND (file like '%.svc' OR file like '%.asmx')".$orderext." limit $startlimit,$stoplimit";
+                $wsqueryCount="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain,YOUR_NETWORK_ZONE_NAME_4 from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain) LIKE '%$search%' AND (file like '%.svc' OR file like '%.asmx') ";
+              
+            } 
+            else {
+                $wsquery="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain,YOUR_NETWORK_ZONE_NAME_4 from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain) LIKE '%$search%' ".$orderext." limit $startlimit,$stoplimit";
+                $wsqueryCount="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain,YOUR_NETWORK_ZONE_NAME_4 from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain) LIKE '%$search%'";
+            }
         }
         else {
-            $result = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices limit $startlimit,$stoplimit") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countResult = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countFiltered = $countResult->num_rows;
+            /*
+                Default davranış: Tüm kayıtlar istenmiş
+            */  
+            if ($filetype=="asmx" || $filetype=="svc") $nfilequery="WHERE ".$filequery;
+            $wsquery="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain,YOUR_NETWORK_ZONE_NAME_4 from webservices ".$nfilequery.$orderext." limit $startlimit,$stoplimit";
+            $wsqueryCount = "select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain,YOUR_NETWORK_ZONE_NAME_4 from webservices ".$nfilequery.$orderext;
         }
     }
     elseif ($getWhat=="internet") {
-        $countRows = $connection->query("select * from webservices where internetaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-        $countFiltered = $countRows->num_rows;
-        $search = htmlentities($_GET["search"]["value"]);
+        if ($filetype=="asmx" || $filetype=="svc")  $filequery="AND ".$filequery;
+        /*
+        $wsquery = "select * from webservices where internetaccess=1 ". $filequery;
+       */
         if (strlen($search)>1){
-            $result = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,intertechaccess,denizprodaccess,internetaccess,domain) LIKE '%$search%' AND internetaccess=1 limit $startlimit,$stoplimit") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countResult = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,intertechaccess,denizprodaccess,internetaccess,domain) LIKE '%$search%' AND internetaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countFiltered = $countResult->num_rows;
+            $wsquery = "select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain) LIKE '%$search%' AND internetaccess=1 ". $filequery." ". $orderext." limit $startlimit,$stoplimit";
+            $wsqueryCount = "select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain from webservices where CONCAT_WS(hostname,IP,folder,file,Appname,fullurl,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain) LIKE '%$search%' AND internetaccess=1 ".$filequery ." ".$orderext;
         }
         else {
-            $result = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where  internetaccess=1 limit $startlimit,$stoplimit") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countResult = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where internetaccess=1") or die(json_encode(array("err"=>mysqli_error($connection))));
-            $countFiltered = $countResult->num_rows;
+            $wsquery = "select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain from webservices where  internetaccess=1 ". $filequery ." ".$orderext." limit $startlimit,$stoplimit";
+            $wsqueryCount = "select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain from webservices where internetaccess=1 ". $filequery ." ".$orderext;
+            
         }
     }
-    elseif ($getWhat=="intertechclient")  $result = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where intertechaccess=1 limit $startlimit,$stoplimit") or die(json_encode(array("err"=>mysqli_error($connection))));
-    elseif ($getWhat=="denizprdoaccess")  $result = $connection->query("select fullurl,hostname,IP,folder,file,Appname,intertechaccess,denizprodaccess,internetaccess,domain from webservices where denizprdoaccess=1 limit $startlimit,$stoplimit") or die(json_encode(array("err"=>mysqli_error($connection))));
-
+    elseif ($getWhat=="intertechclient")  $wsquery="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain from webservices where YOUR_NETWORK_ZONE_NAME_1=1 ".$orderext." limit $startlimit,$stoplimit";
+    elseif ($getWhat=="denizprdoaccess")  $wsqueryCount ="select fullurl,hostname,IP,folder,Appname,YOUR_NETWORK_ZONE_NAME_1,YOUR_NETWORK_ZONE_NAME_2,internetaccess,domain from webservices where denizprdoaccess=1 ".$orderext ." limit $startlimit,$stoplimit";
+    $result = $connection->query($wsquery) or die(json_encode(array("err"=>mysqli_error($connection))));
+    $countResult = $connection->query($wsqueryCount) or die(json_encode(array("err"=>mysqli_error($connection))));
+    $countRows = $connection->query($wsqueryCount) or die(json_encode(array("err"=>mysqli_error($connection))));
+    $countFiltered = $countRows->num_rows;
     $wsList = array();
     $i=0;
     $wsList["draw"] = (int)$_GET["draw"];
@@ -100,24 +159,24 @@ function getWSListAsJson($getWhat,$startlimit,$stoplimit) {
     $jsonlist = json_encode($wsList);
     echo $jsonlist;
 }
-    function AuthUsers($username) {
-        //Kullanıcı oturum açabilir mi?
-        global $dbUser;
-        global $dbPass;
-        global $dbName;
-        global $connection;
-        $huser=hash("SHA256",htmlentities($username));
-        $result=$connection->query("select * from natadmin where aduser='$huser'") or die(mysqli_error($connection));
-      //  $stmt->bind_param("s",$huser);
-        //$stmt->execute();
-        if($result->num_rows>0) return 1; 
-        else return 0;
-    }
-
-    if (isset($_GET["getList"]) AND isset($_SESSION["sessionid"])){
+    
+    function exportCSV($data) {
+        ob_end_clean();
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="WebServiceList.csv"');
+        $df = fopen("php://output", 'w');
+        fputcsv($df, array('ID', 'ComputerName', 'IP','Folder','File','appname','IPRestrictionInIIS','fullURL','YOUR_NETWORK_ZONE_NAME_2','YOUR_NETWORK_ZONE_NAME_3','internetAccess','Scope'),$delimiter = ",",$enclosure = '"', $mysql_null = true);
+        foreach ($data as $row) {
+          fputcsv($df, $row);
+        }
+        fclose($df);
+        exit;
+      }
+     
+    if (isset($_GET["getList"]) AND $_SESSION["online"]==1){
         $start=(int)$_GET["start"];
         $stop=(int)$_GET["length"]; 
-        if (strlen($_GET["getwhat"])>0) $getWhat = htmlentities($_GET["getwhat"]);
+        if (strlen($_GET["getwhat"])>0) $getWhat = strip_tags($_GET["getwhat"]);
         else $getWhat = "all";
         getWSListAsJson($getWhat,$start,$stop);
     };

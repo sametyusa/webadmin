@@ -1,6 +1,7 @@
 # Web Service Browser
 <p>Gathers web services and other types of files from IIS web servers and checks for access from specified networks</p>
 <p>You need to create mysql db </p>
+<p>Compatible with datables js library at www.datables.net</p>
 
 ## WEBSERVICES
 Stores web service list.
